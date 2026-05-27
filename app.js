@@ -205,7 +205,7 @@ function drawLink(n1, n2, group, className, id = null) {
 
 function drawPlasmaHighlight(pathId, duration, color, group) {
     const plasma = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    plasma.setAttribute('rx', '15'); plasma.setAttribute('ry', '2.5');
+    plasma.setAttribute('rx', '10'); plasma.setAttribute('ry', '2.5');
     plasma.setAttribute('fill', color); plasma.setAttribute('opacity', '0.25');
     plasma.setAttribute('filter', 'url(#conduit-blur)');
     
