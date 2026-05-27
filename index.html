@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MSD v8.3 | Core-Periphery Topology</title>
+    <title>MSD v8.4 | Calibrated Core-Periphery Topology</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,16 +29,19 @@
             </header>
 
             <div class="map-container">
-                <div class="map-underlay"></div>
                 <svg id="topology-layer" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice">
                     <defs>
                         <filter id="conduit-blur" x="-50%" y="-50%" width="200%" height="200%">
                             <feGaussianBlur stdDeviation="3" result="blur" />
                         </filter>
                     </defs>
+                    
+                    <g id="layer-map-underlay"></g>
+                    
                     <g id="layer-quorum-links"></g>
                     <g id="layer-client-links"></g>
-                    <g id="layer-plasma"></g> <g id="layer-nodes"></g>
+                    <g id="layer-plasma"></g> 
+                    <g id="layer-nodes"></g>
                 </svg>
             </div>
         </main>
