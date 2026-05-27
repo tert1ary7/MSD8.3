@@ -1,18 +1,18 @@
-// Coordinates adjusted to match the 200% zoom map projection
+// Calibrated Coordinates pinned to the static vector map projection boundaries
 const SITES = {
-    ewa: { x: 180, y: 150, type: 'datacenter', label: "EWA_TUK" },
-    phx: { x: 250, y: 300, type: 'datacenter', label: "PHX_AZ" },
-    clt: { x: 450, y: 270, type: 'datacenter', label: "CLT_NC" },
-    sea: { x: 160, y: 130, type: 'client', label: "SEA_PUG" },
-    socal: { x: 210, y: 310, type: 'client', label: "SOCAL" },
-    stl: { x: 380, y: 250, type: 'client', label: "STL_BER" },
-    rid: { x: 500, y: 200, type: 'client', label: "RID_PA" },
-    chs: { x: 480, y: 300, type: 'client', label: "CHS_SC" },
-    dab: { x: 470, y: 350, type: 'client', label: "DAB_FL" },
-    // Periphery mapping for international
-    sjc: { x: 650, y: 450, type: 'client', label: "SJC_BRA" },
-    pol: { x: 750, y: 150, type: 'client', label: "POL_WAR" },
-    blr: { x: 900, y: 280, type: 'client', label: "BLR_IND" }
+    ewa: { x: 145, y: 155, type: 'datacenter', label: "EWA_TUK" },
+    phx: { x: 165, y: 220, type: 'datacenter', label: "PHX_AZ" },
+    clt: { x: 295, y: 215, type: 'datacenter', label: "CLT_NC" },
+    sea: { x: 140, y: 130, type: 'client', label: "SEA_PUG" },
+    socal: { x: 150, y: 240, type: 'client', label: "SOCAL" },
+    stl: { x: 245, y: 195, type: 'client', label: "STL_BER" },
+    rid: { x: 320, y: 180, type: 'client', label: "RID_PA" },
+    chs: { x: 305, y: 240, type: 'client', label: "CHS_SC" },
+    dab: { x: 310, y: 265, type: 'client', label: "DAB_FL" },
+    // Core-Periphery Layout (pinned elegantly to perimeter bounds)
+    sjc: { x: 410, y: 420, type: 'client', label: "SJC_BRA" },
+    pol: { x: 575, y: 135, type: 'client', label: "POL_WAR" },
+    blr: { x: 810, y: 290, type: 'client', label: "BLR_IND" }
 };
 
 let SERVICES = [
@@ -28,13 +28,37 @@ let streamInterval = null;
 let clientPaths = [];
 
 function init() {
+    renderVectorMapUnderlay();
     sortServices();
     renderSidebar();
     loadMacroView();
     startStreamOrchestrator();
 }
 
-// Auto-sort trouble to the top
+// Injects the vector world background inside the same coordinate container
+function renderVectorMapUnderlay() {
+    const layer = document.getElementById('layer-map-underlay');
+    // Transform parameters focus cleanly on NA, scaling map features smoothly
+    layer.setAttribute('transform', 'translate(-220, -50) scale(1.85)');
+    
+    // Fetch external low-res world paths securely or embed high performance layout geometry
+    fetch('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')
+        .then(r => r.text())
+        .then(svgText => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(svgText, 'image/svg+xml');
+            const paths = doc.querySelectorAll('path');
+            let combinedPaths = '';
+            paths.forEach(p => {
+                combinedPaths += `<path d="${p.getAttribute('d')}" class="vector-map-element" />`;
+            });
+            layer.innerHTML = combinedPaths;
+        }).catch(err => {
+            // Fallback structural bounding box to ensure grid layout safety if offline
+            layer.innerHTML = `<rect width="1000" height="500" fill="none" stroke="rgba(255,255,255,0.02)"/>`;
+        });
+}
+
 function sortServices() {
     SERVICES.sort((a, b) => STATE_WEIGHT[b.state] - STATE_WEIGHT[a.state]);
 }
@@ -53,12 +77,8 @@ function renderSidebar() {
 }
 
 function handleHexClick(serviceId) {
-    if (currentView === serviceId) {
-        // Deselect if already active
-        loadMacroView();
-    } else {
-        loadTopology(serviceId);
-    }
+    if (currentView === serviceId) loadMacroView();
+    else loadTopology(serviceId);
 }
 
 function loadMacroView() {
@@ -70,7 +90,6 @@ function loadMacroView() {
     document.getElementById('view-subtitle').style.color = "var(--text-dim)";
     document.getElementById('core-panel').style.backgroundColor = "transparent";
 
-    // In macro view, render physical datacenters, no specific routing lines
     drawMap(null, ["ewa", "phx", "clt"]); 
 }
 
@@ -109,15 +128,13 @@ function drawMap(svc, upNodes) {
     gNodes.innerHTML = ''; gQuorum.innerHTML = ''; gClients.innerHTML = ''; gPlasma.innerHTML = '';
     clientPaths = [];
 
-    // Macro View Check
     const isMacro = (svc === null);
     
-    // Draw Base Triad
     const drawQuorum = (n1, n2, id) => {
         drawLink(SITES[n1], SITES[n2], gQuorum, 'quorum ' + (upNodes.length<3 && !isMacro ?'degraded':''), id);
         if (upNodes.includes(n1) && upNodes.includes(n2)) {
-            const speed = Math.hypot(SITES[n1].x - SITES[n2].x, SITES[n1].y - SITES[n2].y) / 60;
-            drawPlasmaHighlight(id, Math.max(2, speed), (upNodes.length < 3 && !isMacro) ? 'var(--amber)' : 'var(--cyan)', gPlasma);
+            const speed = Math.hypot(SITES[n1].x - SITES[n2].x, SITES[n1].y - SITES[n2].y) / 40;
+            drawPlasmaHighlight(id, Math.max(2.5, speed), (upNodes.length < 3 && !isMacro) ? 'var(--amber)' : 'var(--cyan)', gPlasma);
         }
     };
 
@@ -125,12 +142,10 @@ function drawMap(svc, upNodes) {
     if (upNodes.includes("phx") || (!isMacro && svc.down.includes("phx"))) drawQuorum("phx", "clt", "q-phx-clt");
     if (upNodes.includes("clt") || (!isMacro && svc.down.includes("clt"))) drawQuorum("clt", "ewa", "q-clt-ewa");
 
-    // Nodes & Clients
     Object.keys(SITES).forEach(key => {
         const site = SITES[key];
         const isFault = !isMacro && svc.down.includes(key);
 
-        // Only draw client routing if NOT in macro view
         if (!isMacro && site.type === 'client' && upNodes.length > 0) {
             let closest = upNodes[0];
             let minDist = 9999;
@@ -143,19 +158,18 @@ function drawMap(svc, upNodes) {
             clientPaths.push(pathEl);
         }
         
-        // Render Nodes
-        if (isMacro && site.type === 'client') return; // Hide clients in macro view for cleanliness
+        if (isMacro && site.type === 'client') return; 
 
         const nodeG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         nodeG.setAttribute('class', `node ${isFault ? 'fault' : ''}`);
         
         if (site.type === 'datacenter') {
             const hexBg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            hexBg.setAttribute('points', getHexPoints(site.x, site.y, 16));
+            hexBg.setAttribute('points', getHexPoints(site.x, site.y, 14));
             hexBg.setAttribute('class', 'node-datacenter-bg');
             
             const hexCore = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            hexCore.setAttribute('points', getHexPoints(site.x, site.y, 8));
+            hexCore.setAttribute('points', getHexPoints(site.x, site.y, 7));
             hexCore.setAttribute('class', 'node-datacenter-core');
 
             nodeG.appendChild(hexBg);
@@ -163,13 +177,13 @@ function drawMap(svc, upNodes) {
         } else {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', site.x); circle.setAttribute('cy', site.y);
-            circle.setAttribute('r', '5');
+            circle.setAttribute('r', '4');
             circle.setAttribute('class', 'node-client');
             nodeG.appendChild(circle);
         }
 
         const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        lbl.setAttribute('x', site.x + 12); lbl.setAttribute('y', site.y - 12);
+        lbl.setAttribute('x', site.x + 10); lbl.setAttribute('y', site.y - 10);
         lbl.setAttribute('class', 'node-label');
         lbl.textContent = site.label;
         nodeG.appendChild(lbl);
@@ -181,7 +195,7 @@ function drawMap(svc, upNodes) {
 function drawLink(n1, n2, group, className, id = null) {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     const cx = (n1.x + n2.x) / 2;
-    const cy = Math.min(n1.y, n2.y) - 30;
+    const cy = Math.min(n1.y, n2.y) - 25;
     path.setAttribute('d', `M ${n1.x} ${n1.y} Q ${cx} ${cy} ${n2.x} ${n2.y}`);
     path.setAttribute('class', `link ${className}`);
     if (id) path.setAttribute('id', id);
@@ -191,9 +205,8 @@ function drawLink(n1, n2, group, className, id = null) {
 
 function drawPlasmaHighlight(pathId, duration, color, group) {
     const plasma = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    plasma.setAttribute('rx', '20'); plasma.setAttribute('ry', '3');
-    plasma.setAttribute('fill', color);
-    plasma.setAttribute('opacity', '0.3');
+    plasma.setAttribute('rx', '15'); plasma.setAttribute('ry', '2.5');
+    plasma.setAttribute('fill', color); plasma.setAttribute('opacity', '0.25');
     plasma.setAttribute('filter', 'url(#conduit-blur)');
     
     const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
@@ -217,9 +230,9 @@ function startStreamOrchestrator() {
         for(let i=0; i<activeCount; i++) {
             const rndPath = clientPaths[Math.floor(Math.random() * clientPaths.length)];
             rndPath.classList.add('stream-active');
-            rndPath.animate([{ strokeDashoffset: '16' }, { strokeDashoffset: '0' }], { duration: 1000, iterations: Infinity, easing: 'linear' });
+            rndPath.animate([{ strokeDashoffset: '16' }, { strokeDashoffset: '0' }], { duration: 1200, iterations: Infinity, easing: 'linear' });
         }
-    }, 4000);
+    }, 4500);
 }
 
 function getHexPoints(x, y, r) {
