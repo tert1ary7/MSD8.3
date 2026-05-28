@@ -18,6 +18,7 @@ body { margin: 0; background: var(--bg-base); color: var(--text); font-family: '
 .panel-header { padding: 12px; font-size: 10px; font-weight: 800; letter-spacing: 2px; border-bottom: 1px solid var(--grid); color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
 .panel-header:hover { color: var(--cyan); background: rgba(0, 242, 254, 0.05); }
 .hex-grid { padding: 15px; display: flex; flex-wrap: wrap; gap: 8px; overflow-y: auto; align-content: flex-start; }
+
 .service-hex { 
     width: 60px; height: 65px; background: var(--dark);
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
@@ -32,7 +33,7 @@ body { margin: 0; background: var(--bg-base); color: var(--text); font-family: '
 .service-hex .stat { font-size: 8px; margin-top: 2px; pointer-events: none; }
 .service-hex.active-view .stat { color: #000; font-weight: bold; }
 
-/* Main Viewer & Core Breath */
+/* Main Viewer */
 .topology-viewer { flex-grow: 1; background: var(--panel-bg); border: 1px solid var(--grid); display: flex; flex-direction: column; border-radius: 4px; }
 .viewer-header { padding: 20px; border-bottom: 1px solid var(--grid); display: flex; justify-content: space-between; align-items: flex-end; }
 .viewer-header h1 { margin: 0; font-size: 20px; font-weight: 300; letter-spacing: 2px; color: var(--cyan); }
@@ -48,30 +49,21 @@ body { margin: 0; background: var(--bg-base); color: var(--text); font-family: '
 .map-container { flex-grow: 1; position: relative; overflow: hidden; background: #070b11; }
 #topology-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-/* Unified SVG Vector Map Styling */
-.vector-map-element {
-    fill: #111827;
-    stroke: #1f2937;
-    stroke-width: 0.5;
-    opacity: 0.75;
-}
+.vector-map-element { fill: #111827; stroke: #1f2937; stroke-width: 0.5; opacity: 0.75; }
 
-/* SVG Nodes & Interfaces */
+/* SVG Components */
 .node-datacenter-bg { fill: var(--cyan); stroke: var(--bg-base); stroke-width: 2; }
 .node-datacenter-core { fill: rgba(0,0,0,0.6); } 
 .node.fault .node-datacenter-bg { fill: var(--red); stroke: rgba(239, 68, 68, 0.3); stroke-width: 4; }
 
 .node-client { fill: var(--dark); stroke: var(--text-dim); stroke-width: 1.5; }
-.node-label { fill: var(--text); font-size: 10px; font-family: monospace; font-weight: bold; pointer-events: none; }
+.node-label { fill: var(--text); font-size: 9px; font-family: monospace; font-weight: bold; pointer-events: none; }
 .node.fault .node-label { fill: var(--red); }
 
-/* Transmission Paths */
+/* Paths & Streams */
 .link { fill: none; stroke-width: 1.5; opacity: 0.15; }
-.link.quorum { stroke: var(--cyan); stroke-width: 3; opacity: 0.25; }
+.link.quorum { stroke: var(--cyan); stroke-width: 2.5; opacity: 0.25; }
 .link.quorum.degraded { stroke: var(--amber); }
 .link.client { stroke: var(--text-dim); }
 
-.stream-active {
-    stroke: var(--cyan); stroke-width: 1.5;
-    stroke-dasharray: 4 12; opacity: 0.4;
-}
+.stream-active { stroke: var(--cyan); stroke-width: 1.5; stroke-dasharray: 4 12; opacity: 0.4; }
