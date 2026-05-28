@@ -1,25 +1,39 @@
-// Calibrated Coordinates pinned to the static vector map projection boundaries
+// Lat/Lon mapping. Math maps it to the vector geometry natively. 
 const SITES = {
-    ewa: { x: 145, y: 155, type: 'datacenter', label: "EWA_TUK" },
-    phx: { x: 165, y: 220, type: 'datacenter', label: "PHX_AZ" },
-    clt: { x: 295, y: 215, type: 'datacenter', label: "CLT_NC" },
-    sea: { x: 140, y: 130, type: 'client', label: "SEA_PUG" },
-    socal: { x: 150, y: 240, type: 'client', label: "SOCAL" },
-    stl: { x: 245, y: 195, type: 'client', label: "STL_BER" },
-    rid: { x: 320, y: 180, type: 'client', label: "RID_PA" },
-    chs: { x: 305, y: 240, type: 'client', label: "CHS_SC" },
-    dab: { x: 310, y: 265, type: 'client', label: "DAB_FL" },
-    // Core-Periphery Layout (pinned elegantly to perimeter bounds)
-    sjc: { x: 410, y: 420, type: 'client', label: "SJC_BRA" },
-    pol: { x: 575, y: 135, type: 'client', label: "POL_WAR" },
-    blr: { x: 810, y: 290, type: 'client', label: "BLR_IND" }
+    ewa:   { lat: 47.47, lon: -122.25, type: 'datacenter', label: "EWA_TUK" },
+    phx:   { lat: 33.44, lon: -112.07, type: 'datacenter', label: "PHX_AZ" },
+    clt:   { lat: 35.22, lon: -80.84,  type: 'datacenter', label: "CLT_NC" },
+    sea:   { lat: 47.60, lon: -122.33, type: 'client', label: "SEA_PUG" },
+    socal: { lat: 34.05, lon: -118.24, type: 'client', label: "SOCAL" },
+    stl:   { lat: 38.62, lon: -90.19,  type: 'client', label: "STL_BER" },
+    rid:   { lat: 39.95, lon: -75.16,  type: 'client', label: "RID_PA" },
+    chs:   { lat: 32.77, lon: -79.93,  type: 'client', label: "CHS_SC" },
+    dab:   { lat: 29.21, lon: -81.02,  type: 'client', label: "DAB_FL" },
+    
+    // Abstracted Periphery: Logical layout bypassing geographic map constraints
+    sjc:   { logical: true, lx: 980, ly: 600, type: 'client', label: "SJC_BRA" },
+    pol:   { logical: true, lx: 1020, ly: 290, type: 'client', label: "POL_WAR" },
+    blr:   { logical: true, lx: 1040, ly: 440, type: 'client', label: "BLR_IND" }
 };
 
+// Expanded realistic pool of logical IT/Engineering services
 let SERVICES = [
-    { id: "NX_SIEMENS", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
-    { id: "MATLAB_R2", state: "warn", triad: ["ewa", "phx", "clt"], down: ["ewa"] },
     { id: "ANSYS_HPC", state: "crit", triad: ["ewa", "phx", "clt"], down: ["phx", "clt"] },
-    { id: "CATIA_V6", state: "ok", triad: ["ewa", "phx", "clt"], down: [] }
+    { id: "K8S_CTRL", state: "crit", triad: ["ewa", "phx", "clt"], down: ["ewa", "phx"] },
+    { id: "MATLAB_R2", state: "warn", triad: ["ewa", "phx", "clt"], down: ["ewa"] },
+    { id: "JIRA_CORE", state: "warn", triad: ["ewa", "phx", "clt"], down: ["clt"] },
+    { id: "AUTOCAD_EL", state: "warn", triad: ["ewa", "phx", "clt"], down: ["phx"] },
+    { id: "NX_SIEMENS", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "CATIA_V6", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "SOLIDWORKS", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "GITLAB_CI", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "SPLUNK_IDX", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "ORACLE_ERP", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "SAP_HANA", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "VMWARE_VC", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "MAYA_3D", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "JENKINS_M", state: "ok", triad: ["ewa", "phx", "clt"], down: [] },
+    { id: "DOCKER_REG", state: "ok", triad: ["ewa", "phx", "clt"], down: [] }
 ];
 
 const STATE_WEIGHT = { "crit": 3, "warn": 2, "ok": 1 };
@@ -35,13 +49,17 @@ function init() {
     startStreamOrchestrator();
 }
 
-// Injects the vector world background inside the same coordinate container
+// Equirectangular projection engine
+function getMapCoords(site) {
+    if (site.logical) return { x: site.lx, y: site.ly };
+    // Mapped precisely to the Wikipedia 2754x1398 coordinate space
+    const x = (site.lon + 180) * (2754 / 360);
+    const y = (90 - site.lat) * (1398 / 180);
+    return { x, y };
+}
+
 function renderVectorMapUnderlay() {
     const layer = document.getElementById('layer-map-underlay');
-    // Transform parameters focus cleanly on NA, scaling map features smoothly
-    layer.setAttribute('transform', 'translate(-220, -50) scale(1.85)');
-    
-    // Fetch external low-res world paths securely or embed high performance layout geometry
     fetch('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')
         .then(r => r.text())
         .then(svgText => {
@@ -54,8 +72,7 @@ function renderVectorMapUnderlay() {
             });
             layer.innerHTML = combinedPaths;
         }).catch(err => {
-            // Fallback structural bounding box to ensure grid layout safety if offline
-            layer.innerHTML = `<rect width="1000" height="500" fill="none" stroke="rgba(255,255,255,0.02)"/>`;
+            layer.innerHTML = `<rect width="2754" height="1398" fill="none" stroke="rgba(255,255,255,0.02)"/>`;
         });
 }
 
@@ -131,10 +148,13 @@ function drawMap(svc, upNodes) {
     const isMacro = (svc === null);
     
     const drawQuorum = (n1, n2, id) => {
-        drawLink(SITES[n1], SITES[n2], gQuorum, 'quorum ' + (upNodes.length<3 && !isMacro ?'degraded':''), id);
+        const c1 = getMapCoords(SITES[n1]);
+        const c2 = getMapCoords(SITES[n2]);
+        drawLink(c1, c2, gQuorum, 'quorum ' + (upNodes.length<3 && !isMacro ?'degraded':''), id);
+        
         if (upNodes.includes(n1) && upNodes.includes(n2)) {
-            const speed = Math.hypot(SITES[n1].x - SITES[n2].x, SITES[n1].y - SITES[n2].y) / 40;
-            drawPlasmaHighlight(id, Math.max(2.5, speed), (upNodes.length < 3 && !isMacro) ? 'var(--amber)' : 'var(--cyan)', gPlasma);
+            const speed = Math.hypot(c1.x - c2.x, c1.y - c2.y) / 100;
+            drawPlasmaHighlight(id, Math.max(3, speed), (upNodes.length < 3 && !isMacro) ? 'var(--amber)' : 'var(--cyan)', gPlasma);
         }
     };
 
@@ -144,17 +164,19 @@ function drawMap(svc, upNodes) {
 
     Object.keys(SITES).forEach(key => {
         const site = SITES[key];
+        const coords = getMapCoords(site);
         const isFault = !isMacro && svc.down.includes(key);
 
         if (!isMacro && site.type === 'client' && upNodes.length > 0) {
             let closest = upNodes[0];
             let minDist = 9999;
             upNodes.forEach(t => {
-                const d = Math.hypot(site.x - SITES[t].x, site.y - SITES[t].y);
+                const tCoords = getMapCoords(SITES[t]);
+                const d = Math.hypot(coords.x - tCoords.x, coords.y - tCoords.y);
                 if (d < minDist) { minDist = d; closest = t; }
             });
             const pathId = `path-${key}`;
-            const pathEl = drawLink(site, SITES[closest], gClients, 'client', pathId);
+            const pathEl = drawLink(coords, getMapCoords(SITES[closest]), gClients, 'client', pathId);
             clientPaths.push(pathEl);
         }
         
@@ -165,25 +187,24 @@ function drawMap(svc, upNodes) {
         
         if (site.type === 'datacenter') {
             const hexBg = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            hexBg.setAttribute('points', getHexPoints(site.x, site.y, 14));
+            hexBg.setAttribute('points', getHexPoints(coords.x, coords.y, 11));
             hexBg.setAttribute('class', 'node-datacenter-bg');
             
             const hexCore = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            hexCore.setAttribute('points', getHexPoints(site.x, site.y, 7));
+            hexCore.setAttribute('points', getHexPoints(coords.x, coords.y, 5));
             hexCore.setAttribute('class', 'node-datacenter-core');
 
-            nodeG.appendChild(hexBg);
-            nodeG.appendChild(hexCore);
+            nodeG.appendChild(hexBg); nodeG.appendChild(hexCore);
         } else {
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', site.x); circle.setAttribute('cy', site.y);
-            circle.setAttribute('r', '4');
+            circle.setAttribute('cx', coords.x); circle.setAttribute('cy', coords.y);
+            circle.setAttribute('r', '3');
             circle.setAttribute('class', 'node-client');
             nodeG.appendChild(circle);
         }
 
         const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        lbl.setAttribute('x', site.x + 10); lbl.setAttribute('y', site.y - 10);
+        lbl.setAttribute('x', coords.x + 9); lbl.setAttribute('y', coords.y - 9);
         lbl.setAttribute('class', 'node-label');
         lbl.textContent = site.label;
         nodeG.appendChild(lbl);
@@ -192,11 +213,11 @@ function drawMap(svc, upNodes) {
     });
 }
 
-function drawLink(n1, n2, group, className, id = null) {
+function drawLink(c1, c2, group, className, id = null) {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const cx = (n1.x + n2.x) / 2;
-    const cy = Math.min(n1.y, n2.y) - 25;
-    path.setAttribute('d', `M ${n1.x} ${n1.y} Q ${cx} ${cy} ${n2.x} ${n2.y}`);
+    const cx = (c1.x + c2.x) / 2;
+    const cy = Math.min(c1.y, c2.y) - 60;
+    path.setAttribute('d', `M ${c1.x} ${c1.y} Q ${cx} ${cy} ${c2.x} ${c2.y}`);
     path.setAttribute('class', `link ${className}`);
     if (id) path.setAttribute('id', id);
     group.appendChild(path);
@@ -205,7 +226,7 @@ function drawLink(n1, n2, group, className, id = null) {
 
 function drawPlasmaHighlight(pathId, duration, color, group) {
     const plasma = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    plasma.setAttribute('rx', '10'); plasma.setAttribute('ry', '2.5');
+    plasma.setAttribute('rx', '25'); plasma.setAttribute('ry', '3.5');
     plasma.setAttribute('fill', color); plasma.setAttribute('opacity', '0.25');
     plasma.setAttribute('filter', 'url(#conduit-blur)');
     
@@ -226,13 +247,13 @@ function startStreamOrchestrator() {
         clientPaths.forEach(p => { p.classList.remove('stream-active'); p.style.animation = 'none'; });
         if (clientPaths.length === 0) return;
 
-        const activeCount = Math.floor(Math.random() * 2) + 1;
+        const activeCount = Math.floor(Math.random() * 3) + 1;
         for(let i=0; i<activeCount; i++) {
             const rndPath = clientPaths[Math.floor(Math.random() * clientPaths.length)];
             rndPath.classList.add('stream-active');
-            rndPath.animate([{ strokeDashoffset: '16' }, { strokeDashoffset: '0' }], { duration: 1200, iterations: Infinity, easing: 'linear' });
+            rndPath.animate([{ strokeDashoffset: '16' }, { strokeDashoffset: '0' }], { duration: 1500, iterations: Infinity, easing: 'linear' });
         }
-    }, 4500);
+    }, 4000);
 }
 
 function getHexPoints(x, y, r) {
