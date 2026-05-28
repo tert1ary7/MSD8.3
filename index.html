@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MSD v8.4 | Calibrated Core-Periphery Topology</title>
+    <title>MSD v8.5 | Automated Geo-Projection</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="msd-container">
         <aside class="service-fleet">
-            <div class="panel-header" onclick="loadMacroView()" style="cursor:pointer;" title="Click to reset view">
+            <div class="panel-header" onclick="loadMacroView()" style="cursor:pointer;" title="Reset to global view">
                 <span>LICENSE FLEET</span>
                 <span class="btn-toggle">VIEW ALL</span>
             </div>
@@ -29,15 +29,14 @@
             </header>
 
             <div class="map-container">
-                <svg id="topology-layer" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice">
+                <svg id="topology-layer" viewBox="320 230 750 450" preserveAspectRatio="xMidYMid slice">
                     <defs>
                         <filter id="conduit-blur" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="3" result="blur" />
+                            <feGaussianBlur stdDeviation="3.5" result="blur" />
                         </filter>
                     </defs>
                     
                     <g id="layer-map-underlay"></g>
-                    
                     <g id="layer-quorum-links"></g>
                     <g id="layer-client-links"></g>
                     <g id="layer-plasma"></g> 
