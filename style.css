@@ -15,7 +15,7 @@ body { margin: 0; background: var(--bg-base); color: var(--text); font-family: '
 
 /* Sidebar & Sorting */
 .service-fleet { width: 300px; background: var(--panel-bg); border: 1px solid var(--grid); display: flex; flex-direction: column; border-radius: 4px; z-index: 10; }
-.panel-header { padding: 12px; font-size: 10px; font-weight: 800; letter-spacing: 2px; border-bottom: 1px solid var(--grid); color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; }
+.panel-header { padding: 12px; font-size: 10px; font-weight: 800; letter-spacing: 2px; border-bottom: 1px solid var(--grid); color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
 .panel-header:hover { color: var(--cyan); background: rgba(0, 242, 254, 0.05); }
 .hex-grid { padding: 15px; display: flex; flex-wrap: wrap; gap: 8px; overflow-y: auto; align-content: flex-start; }
 
@@ -49,9 +49,16 @@ body { margin: 0; background: var(--bg-base); color: var(--text); font-family: '
 .map-container { flex-grow: 1; position: relative; overflow: hidden; background: #070b11; }
 #topology-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
-.vector-map-element { fill: #111827; stroke: #1f2937; stroke-width: 0.5; opacity: 0.75; }
+/* Map Underlay Overrides */
+.vector-map-element path { 
+    fill: #111827 !important; 
+    stroke: #1f2937 !important; 
+    stroke-width: 0.5px !important; 
+}
+.vector-map-element { opacity: 0.75; }
 
 /* SVG Components */
+.node-base-plate { fill: #070b11; } /* Physical occlusion layer to hide pulses */
 .node-datacenter-bg { fill: var(--cyan); stroke: var(--bg-base); stroke-width: 2; }
 .node-datacenter-core { fill: rgba(0,0,0,0.6); } 
 .node.fault .node-datacenter-bg { fill: var(--red); stroke: rgba(239, 68, 68, 0.3); stroke-width: 4; }
