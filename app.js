@@ -1,3 +1,10 @@
+// Global Calibration Matrix: Aligns fetched SVG vector space to Math coordinate space.
+const PROJECTION_MATRIX = {
+    mapScale: 1.0,  
+    offsetX: -80,   // Shifts map left/right to align with nodes
+    offsetY: 40     // Shifts map up/down to align with nodes
+};
+
 const SITES = {
     ewa:   { lat: 47.47, lon: -122.25, type: 'datacenter', label: "EWA_TUK" },
     phx:   { lat: 33.44, lon: -112.07, type: 'datacenter', label: "PHX_AZ" },
@@ -9,9 +16,10 @@ const SITES = {
     chs:   { lat: 32.77, lon: -79.93,  type: 'client', label: "CHS_SC" },
     dab:   { lat: 29.21, lon: -81.02,  type: 'client', label: "DAB_FL" },
     
-    sjc:   { logical: true, lx: 980, ly: 600, type: 'client', label: "SJC_BRA" },
-    pol:   { logical: true, lx: 1020, ly: 290, type: 'client', label: "POL_WAR" },
-    blr:   { logical: true, lx: 1040, ly: 440, type: 'client', label: "BLR_IND" }
+    // Abstracted Periphery: Logical layout bypassing geographic map constraints
+    sjc:   { logical: true, lx: 1300, ly: 750, type: 'client', label: "SJC_BRA" },
+    pol:   { logical: true, lx: 1350, ly: 250, type: 'client', label: "POL_WAR" },
+    blr:   { logical: true, lx: 1380, ly: 450, type: 'client', label: "BLR_IND" }
 };
 
 let SERVICES = [
@@ -48,22 +56,36 @@ function init() {
 
 function getMapCoords(site) {
     if (site.logical) return { x: site.lx, y: site.ly };
-    const x = (site.lon + 180) * (2754 / 360);
-    const y = (90 - site.lat) * (1398 / 180);
+    
+    // Equirectangular Projection Engine
+    // 2754 x 1398 is the absolute base math grid.
+    const x = ((site.lon + 180) / 360) * 2754;
+    const y = ((90 - site.lat) / 180) * 1398;
     return { x, y };
 }
 
 function renderVectorMapUnderlay() {
     const layer = document.getElementById('layer-map-underlay');
     
-    // Safely parse the entire SVG to preserve native group projections
     fetch('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')
         .then(r => r.text())
         .then(svgText => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(svgText, 'image/svg+xml');
-            const svgContent = doc.querySelector('svg').innerHTML;
-            layer.innerHTML = `<g class="vector-map-element">${svgContent}</g>`;
+            
+            // We do NOT just extract innerHTML. We wrap it in a calibration transform
+            // to perfectly sync the visual landmasses to the coordinate math output.
+            const gWrap = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            gWrap.setAttribute('class', 'vector-map-element');
+            gWrap.setAttribute('transform', `translate(${PROJECTION_MATRIX.offsetX}, ${PROJECTION_MATRIX.offsetY}) scale(${PROJECTION_MATRIX.mapScale})`);
+            
+            // Clone all SVG nodes safely
+            Array.from(doc.querySelector('svg').childNodes).forEach(child => {
+                if(child.nodeType === 1) gWrap.appendChild(child.cloneNode(true));
+            });
+            
+            layer.innerHTML = '';
+            layer.appendChild(gWrap);
         }).catch(err => {
             layer.innerHTML = `<rect width="2754" height="1398" fill="none" stroke="rgba(255,255,255,0.02)"/>`;
         });
@@ -179,7 +201,7 @@ function drawMap(svc, upNodes) {
         nodeG.setAttribute('class', `node ${isFault ? 'fault' : ''}`);
         
         if (site.type === 'datacenter') {
-            // Opaque base plate to completely hide the plasma packet
+            // Opaque base plate: Completely occludes the plasma pulse packet underneath
             const hexPlate = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             hexPlate.setAttribute('points', getHexPoints(coords.x, coords.y, 11));
             hexPlate.setAttribute('class', 'node-base-plate');
@@ -226,11 +248,12 @@ function drawLink(c1, c2, group, className, id = null) {
 
 function drawPlasmaHighlight(pathId, duration, color, group) {
     const plasma = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-    // Reduced packet dimensions to perfectly occlude under the hex node
+    // Shrunken dimensions prevent overshoot
     plasma.setAttribute('rx', '8'); 
     plasma.setAttribute('ry', '1.5');
     plasma.setAttribute('fill', color); 
-    plasma.setAttribute('opacity', '0.6');
+    opacity = '0.6';
+    plasma.setAttribute('opacity', opacity);
     plasma.setAttribute('filter', 'url(#conduit-blur)');
     
     const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
