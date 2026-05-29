@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>MSD v8.5 | Automated Geo-Projection</title>
+    <title>MSD v8.7 | Projection Calibrated</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -29,7 +29,7 @@
             </header>
 
             <div class="map-container">
-                <svg id="topology-layer" viewBox="320 230 750 450" preserveAspectRatio="xMidYMid slice">
+                <svg id="topology-layer" viewBox="200 150 1200 700" preserveAspectRatio="xMidYMid slice">
                     <defs>
                         <filter id="conduit-blur" x="-50%" y="-50%" width="200%" height="200%">
                             <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -37,6 +37,7 @@
                     </defs>
                     
                     <g id="layer-map-underlay"></g>
+                    
                     <g id="layer-quorum-links"></g>
                     <g id="layer-client-links"></g>
                     <g id="layer-plasma"></g> 
