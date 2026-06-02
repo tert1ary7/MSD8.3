@@ -1,9 +1,8 @@
-// Global Calibration Matrix: Aligns fetched SVG vector space to Math coordinate space.
-// const PROJECTION_MATRIX = {
-//     mapScale: 1.0,  
-//     offsetX: -80,   // Shifts map left/right to align with nodes
-//     offsetY: 40     // Shifts map up/down to align with nodes
-// };
+// Global Calibration Matrix: Fine-tuning trim only (map will auto-scale to fit)
+const PROJECTION_MATRIX = {
+    offsetX: 0,   // Fine-tune left/right
+    offsetY: 0    // Fine-tune up/down
+};
 
 const SITES = {
     ewa:   { lat: 47.47, lon: -122.25, type: 'datacenter', label: "EWA_TUK" },
@@ -45,6 +44,7 @@ const STATE_WEIGHT = { "crit": 3, "warn": 2, "ok": 1 };
 let currentView = null;
 let streamInterval = null;
 let clientPaths = [];
+let mapTransform = { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 }; // Store calculated map transform
 
 function init() {
     renderVectorMapUnderlay();
@@ -61,32 +61,78 @@ function getMapCoords(site) {
     // 2754 x 1398 is the absolute base math grid.
     const x = ((site.lon + 180) / 360) * 2754;
     const y = ((90 - site.lat) / 180) * 1398;
-    return { x, y };
+    
+    // Apply the same transform that was applied to the map
+    return { 
+        x: x * mapTransform.scaleX + mapTransform.offsetX + PROJECTION_MATRIX.offsetX,
+        y: y * mapTransform.scaleY + mapTransform.offsetY + PROJECTION_MATRIX.offsetY
+    };
 }
 
 function renderVectorMapUnderlay() {
     const layer = document.getElementById('layer-map-underlay');
+    // Make sure the layer SVG has the correct viewBox
+    layer.setAttribute('viewBox', '0 0 2754 1398');
+    layer.setAttribute('width', '2754');
+    layer.setAttribute('height', '1398');
     
     fetch('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')
         .then(r => r.text())
         .then(svgText => {
             const parser = new DOMParser();
             const doc = parser.parseFromString(svgText, 'image/svg+xml');
+            const svgEl = doc.querySelector('svg');
             
-            // We do NOT just extract innerHTML. We wrap it in a calibration transform
-            // to perfectly sync the visual landmasses to the coordinate math output.
+            // Get the SVG's native viewBox to find its actual dimensions
+            const viewBox = svgEl.getAttribute('viewBox');
+            let svgWidth = 2754;
+            let svgHeight = 1398;
+            
+            if (viewBox) {
+                const parts = viewBox.split(/\s+/).map(Number);
+                svgWidth = parts[2];
+                svgHeight = parts[3];
+            }
+            
+            console.log('Fetched SVG dimensions:', svgWidth, 'x', svgHeight);
+            
+            // Calculate scale to fit exactly into our 2754x1398 grid
+            const scaleX = 2754 / svgWidth;
+            const scaleY = 1398 / svgHeight;
+            
+            // Store the transform for getMapCoords to use
+            mapTransform.scaleX = scaleX;
+            mapTransform.scaleY = scaleY;
+            mapTransform.offsetX = 0;  // Will be updated if we need centering
+            mapTransform.offsetY = 0;
+            
+            // If the SVG aspect ratio doesn't match, center it
+            if (Math.abs(scaleX - scaleY) > 0.001) {
+                const scale = Math.min(scaleX, scaleY);
+                mapTransform.scaleX = scale;
+                mapTransform.scaleY = scale;
+                mapTransform.offsetX = (2754 - (svgWidth * scale)) / 2;
+                mapTransform.offsetY = (1398 - (svgHeight * scale)) / 2;
+                console.log('Centering offset:', mapTransform.offsetX, mapTransform.offsetY);
+            }
+            
             const gWrap = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             gWrap.setAttribute('class', 'vector-map-element');
-            gWrap.setAttribute('transform', `translate(${PROJECTION_MATRIX.offsetX}, ${PROJECTION_MATRIX.offsetY}) scale(${PROJECTION_MATRIX.mapScale})`);
+            
+            // Build transform string with scale and centering, plus fine-tuning offset
+            const transformStr = `translate(${mapTransform.offsetX + PROJECTION_MATRIX.offsetX}, ${mapTransform.offsetY + PROJECTION_MATRIX.offsetY}) scale(${mapTransform.scaleX}, ${mapTransform.scaleY})`;
+            gWrap.setAttribute('transform', transformStr);
+            console.log('Map transform:', transformStr);
             
             // Clone all SVG nodes safely
-            Array.from(doc.querySelector('svg').childNodes).forEach(child => {
+            Array.from(svgEl.childNodes).forEach(child => {
                 if(child.nodeType === 1) gWrap.appendChild(child.cloneNode(true));
             });
             
             layer.innerHTML = '';
             layer.appendChild(gWrap);
         }).catch(err => {
+            console.error('Failed to load map:', err);
             layer.innerHTML = `<rect width="2754" height="1398" fill="none" stroke="rgba(255,255,255,0.02)"/>`;
         });
 }
@@ -252,8 +298,7 @@ function drawPlasmaHighlight(pathId, duration, color, group) {
     plasma.setAttribute('rx', '8'); 
     plasma.setAttribute('ry', '1.5');
     plasma.setAttribute('fill', color); 
-    opacity = '0.6';
-    plasma.setAttribute('opacity', opacity);
+    plasma.setAttribute('opacity', '0.6');
     plasma.setAttribute('filter', 'url(#conduit-blur)');
     
     const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
