@@ -1,7 +1,7 @@
 // Global Calibration Matrix: Fine-tuning trim only (map will auto-scale to fit)
 const PROJECTION_MATRIX = {
-    offsetX: -50,   // Fine-tune left/right
-    offsetY: -30    // Fine-tune up/down
+    offsetX: 50,   // Fine-tune left/right
+    offsetY: 30    // Fine-tune up/down
 };
 
 const SITES = {
