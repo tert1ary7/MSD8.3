@@ -1,9 +1,9 @@
 // Global Calibration Matrix: Aligns fetched SVG vector space to Math coordinate space.
-const PROJECTION_MATRIX = {
-    mapScale: 1.0,  
-    offsetX: -80,   // Shifts map left/right to align with nodes
-    offsetY: 40     // Shifts map up/down to align with nodes
-};
+// const PROJECTION_MATRIX = {
+//     mapScale: 1.0,  
+//     offsetX: -80,   // Shifts map left/right to align with nodes
+//     offsetY: 40     // Shifts map up/down to align with nodes
+// };
 
 const SITES = {
     ewa:   { lat: 47.47, lon: -122.25, type: 'datacenter', label: "EWA_TUK" },
